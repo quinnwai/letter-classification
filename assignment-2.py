@@ -38,6 +38,68 @@ def plotter(x, y, title,xlabel,path):
     plt.ylabel("Validation Error")
     plt.savefig(path)
 
+'''Neural Network Classes/Helper Methods'''
+class OriginalNet(nn.Module):
+    def __init__(self):
+        super(OriginalNet, self).__init__()
+
+        # two fully connected layers
+        self.fc1 = nn.Linear(16, 8)
+        self.fc2 = nn.Linear(8, 2)
+
+    # x represents our data
+    def forward(self, x):
+        # Pass data through fc1, then apply relu
+        x = self.fc1(x)
+        x = F.relu(x)
+
+        # pass data through fc2
+        x = self.fc2(x)
+
+        # Apply softmax to x
+        output = F.log_softmax(x, dim=1)
+        return output
+
+class ReducedNet(nn.Module):
+    def __init__(self):
+        super(ReducedNet, self).__init__()
+
+        # fully connected layers
+        self.fc1 = nn.Linear(4, 3)
+        self.fc2 = nn.Linear(3, 2)
+
+    # x represents our data
+    def forward(self, x):
+        # Pass data through fc1, then apply relu
+        x = self.fc1(x)
+        x = F.relu(x)
+
+        x = self.fc2(x)
+
+        # Apply softmax to x
+        output = F.log_softmax(x, dim=1)
+        return output
+
+def train_epochs(epochs, net, trainloader, optimizer, loss_fn):
+    for epoch in range(epochs):
+        running_loss = 0.0
+        for j, data in enumerate(trainloader):
+            inputs, labels = data
+
+            # zero the parameter gradients
+            optimizer.zero_grad()
+
+            # forward + backward + optimize
+            outputs = net(inputs)
+            loss = loss_fn(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+            # print statistics
+            running_loss += loss.item()
+            if j % 100 == 99: running_loss = 0.0
+
+
 '''5 Model Functions'''
 def kNeighbors(X, y, X_test, y_test, k_vals, title=""):
     # log start time
@@ -72,12 +134,6 @@ def kNeighbors(X, y, X_test, y_test, k_vals, title=""):
     best_model_idx = val_errors == val_errors.min()
     test_error = test_errors[best_model_idx][0]
     k = k_vals[best_model_idx][0]
-
-    # # plot validation errors for different x values 
-    # figtitle = f"{title}: Tuning k in k Nearest Neighbors"
-    # xlabel = "k"
-    # path = f"figures/{title}: knn tuning"
-    # plotter(k_vals, val_errors, figtitle, xlabel, path)
 
     # record time
     t1 = time()
@@ -121,12 +177,6 @@ def decisionTree(X, y, X_test, y_test, min_leaf_vals, title=""):
     test_error = test_errors[best_model_idx][0]
     min_samples_leaf = min_leaf_vals[best_model_idx][0]
 
-    # # plot scores 
-    # figtitle = f"{title}: Tuning Minimum Samples per Leaf in a Decision Tree"
-    # xlabel = "Minimum Samples per Leaf"
-    # path = f"figures/{title}: decision tree tuning"
-    # plotter(min_leaf_vals, val_errors, figtitle, xlabel, path)
-
     # record time
     t1 = time()
     runtime = t1 - t0 
@@ -168,12 +218,6 @@ def randomForest(X, y, X_test, y_test, n_estimators_vals, title=""):
     test_error = test_errors[best_model_idx][0]
     n_estimators = n_estimators_vals[best_model_idx][0]
 
-    # # plot scores 
-    # figtitle = f"{title}: Tuning Number of Estimators in a Random Forest"
-    # xlabel = "Number of Estimators"
-    # path = f"figures/{title}: decision tree tuning"
-    # plotter(n_estimators_vals, val_errors, figtitle, xlabel, path)
-
     # record time
     t1 = time()
     runtime = t1 - t0 
@@ -214,12 +258,6 @@ def supportVectorMachine(X, y, X_test, y_test, C_vals, title=""):
     best_model_idx = val_errors == val_errors.min()
     test_error = test_errors[best_model_idx][0]
     C = C_vals[best_model_idx][0]
-
-    # # plot scores 
-    # figtitle = f"{title}: Tuning Regularization Constant (C) in SVM"
-    # xlabel = "C"
-    # path = f"figures/{title}: SVM tuning"
-    # plotter(C_vals, val_errors, figtitle, xlabel, path)
 
     # record time
     t1 = time()
@@ -323,87 +361,11 @@ def neuralNetwork(X, y, X_test, y_test, epoch_vals, title="", net_type=OriginalN
             correct += (predicted == labels).sum().item()
     test_error = 1 - score/n_splits
 
-    # # plot scores 
-    # figtitle = f"{title}: Tuning Number of Epochs in NN"
-    # xlabel = "Number of Epochs"
-    # path = f"figures/{title}: NN tuning"
-    # plotter(epoch_vals, val_errors, figtitle, xlabel, path)
-
     # record time
     t1 = time()
     runtime = t1 - t0 
 
     return val_errors, learning_rate, test_error, runtime 
-
-'''Neural Network Classes/Helper Methods'''
-class OriginalNet(nn.Module):
-    def __init__(self):
-        super(OriginalNet, self).__init__()
-
-        # # dropout layer for regularization / prevent overfitting
-        # self.dropout1 = nn.Dropout2d(0.25)
-
-        # two fully connected layers
-        self.fc1 = nn.Linear(16, 8)
-        self.fc2 = nn.Linear(8, 2)
-
-    # x represents our data
-    def forward(self, x):
-        # Pass data through fc1, then apply relu
-        x = self.fc1(x)
-        x = F.relu(x)
-
-        # dropout layer before passing data to fc2
-        # x = self.dropout1(x)
-        x = self.fc2(x)
-
-        # Apply softmax to x
-        output = F.log_softmax(x, dim=1)
-        return output
-
-class ReducedNet(nn.Module):
-    def __init__(self):
-        super(ReducedNet, self).__init__()
-
-        # # dropout layer for regularization / prevent overfitting
-        # self.dropout1 = nn.Dropout2d(0.25)
-
-        # two fully connected layers
-        self.fc1 = nn.Linear(4, 3)
-        self.fc2 = nn.Linear(3, 2)
-
-    # x represents our data
-    def forward(self, x):
-        # Pass data through fc1, then apply relu
-        x = self.fc1(x)
-        x = F.relu(x)
-
-        # dropout layer before passing data to fc2
-        # x = self.dropout1(x)
-        x = self.fc2(x)
-
-        # Apply softmax to x
-        output = F.log_softmax(x, dim=1)
-        return output
-
-def train_epochs(epochs, net, trainloader, optimizer, loss_fn):
-    for epoch in range(epochs):
-        running_loss = 0.0
-        for j, data in enumerate(trainloader):
-            inputs, labels = data
-
-            # zero the parameter gradients
-            optimizer.zero_grad()
-
-            # forward + backward + optimize
-            outputs = net(inputs)
-            loss = loss_fn(outputs, labels)
-            loss.backward()
-            optimizer.step()
-
-            # print statistics
-            running_loss += loss.item()
-            if j % 100 == 99: running_loss = 0.0
 
 def main():
     # # Data preprocessing
